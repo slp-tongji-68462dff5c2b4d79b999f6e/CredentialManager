@@ -1,6 +1,4 @@
 using System.Runtime.CompilerServices;
-using Tjslp.CredentialManager.Data;
-using Tjslp.CredentialManager.Downstream;
 
 namespace Tjslp.CredentialManager.Services;
 

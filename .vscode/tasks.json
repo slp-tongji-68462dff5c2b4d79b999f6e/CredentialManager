@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/Sample/Sample.csproj"
+                "${workspaceFolder}/src/CredentialManager/CredentialManager.csproj"
             ],
             "problemMatcher": "$msCompile",
             "group": {

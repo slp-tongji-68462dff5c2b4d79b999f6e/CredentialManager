@@ -1,0 +1,139 @@
+using System.Security.Cryptography.X509Certificates;
+using CliFx;
+using CliFx.Binding;
+using CliFx.Infrastructure;
+using LiteDB;
+using Tjslp.CredentialManager.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+
+namespace Tjslp.CredentialManager;
+
+[Command]
+public sealed partial class ServeCommand : ICommand
+{
+    [CommandOption("port")]
+    public required int Port { get; set; }
+
+    [CommandOption("data")]
+    public required string Data { get; set; }
+
+    [CommandOption("downstream")]
+    public required string Downstream { get; set; }
+
+    [CommandOption("administrator")]
+    public required string Administrator { get; set; }
+
+    [CommandOption("oidc")]
+    public required string Oidc { get; set; }
+
+    [CommandOption("oidc-id")]
+    public required string OidcId { get; set; }
+
+    [CommandOption("oidc-secret", EnvironmentVariable = "CM_OIDC_SECRET")]
+    public required string OidcSecret { get; set; }
+
+    [CommandOption("oidc-ca")]
+    public string? OidcCa { get; set; } = null;
+
+    public async ValueTask ExecuteAsync(IConsole console)
+    {
+        await using var app = BuildApp();
+        await app.RunAsync();
+    }
+
+    public WebApplication BuildApp()
+    {
+        var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions
+        {
+            ApplicationName = typeof(ServeCommand).Assembly.GetName().Name,
+            Args = ["--urls", $"http://127.0.0.1:{Port}"],
+        });
+
+        builder.WebHost.UseKestrel();
+
+        Directory.CreateDirectory(Data);
+
+        var credentialService = new CredentialService(
+            new DownstreamClient(new Uri(Downstream.TrimEnd('/') + "/")),
+            new CredentialRepository(new LiteDatabase(Path.Combine(Data, "credentials.db"))));
+
+        builder.Services.AddSingleton(credentialService);
+
+        builder.Services
+            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.LoginPath = "/Account/Login";
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                };
+            })
+            .AddOpenIdConnect("oidc", options =>
+            {
+                options.Authority = Oidc;
+                options.ClientId = OidcId;
+                options.ClientSecret = OidcSecret;
+                options.GetClaimsFromUserInfoEndpoint = true;
+                options.Scope.Add("profile");
+                options.Scope.Add("groups");
+                options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                options.NonceCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+                if (OidcCa is not null)
+                {
+                    var trustedCa = X509Certificate2.CreateFromPem(File.ReadAllText(OidcCa));
+                    var handler = new SocketsHttpHandler();
+                    handler.SslOptions.RemoteCertificateValidationCallback = (_, cert, _, errors) =>
+                    {
+                        if (cert is null)
+                        {
+                            return false;
+                        }
+
+                        using var chain = new X509Chain();
+                        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                        chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                        chain.ChainPolicy.CustomTrustStore.Add(trustedCa);
+                        return chain.Build(new X509Certificate2(cert));
+                    };
+                    options.BackchannelHttpHandler = handler;
+                }
+            });
+
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy("Administrator", policy => policy.RequireAssertion(context =>
+                context.User.FindAll("groups").Any(claim => claim.Value == Administrator)));
+        });
+        builder.Services.AddRazorPages();
+
+        var app = builder.Build();
+
+        app.UseStaticFiles();
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapRazorPages();
+
+        app.MapGet("/Account/Login", (string? returnUrl) =>
+            Results.Challenge(
+                new AuthenticationProperties
+                {
+                    RedirectUri = returnUrl ?? "/",
+                },
+                authenticationSchemes: ["oidc"]));
+
+        app.MapPost("/Account/Logout", async (HttpContext context) =>
+        {
+            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Results.Redirect("/Account/Login");
+        });
+
+        return app;
+    }
+}

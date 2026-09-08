@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Tjslp.CredentialManager.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace Tjslp.CredentialManager.Pages;
 
 [Authorize]
-public sealed class IndexModel : BasePageModel
+public sealed class IndexModel : PageModel
 {
     private readonly CredentialService credentialService;
+
+    public string Owner => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
     public IReadOnlyList<(string CredentialId, string Alias, string Owner, DateTimeOffset? Expire)> Credentials { get; private set; }
         = [];
@@ -22,19 +25,16 @@ public sealed class IndexModel : BasePageModel
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
-        if (Sub is null) return RequireLogin();
         await LoadAsync(cancellationToken);
         return Page();
     }
 
     public async Task<IActionResult> OnPostCreateAsync(string alias, string? expire, CancellationToken cancellationToken)
     {
-        if (Sub is null) return RequireLogin();
-
         if (string.IsNullOrWhiteSpace(alias))
         {
             await LoadAsync(cancellationToken);
-            Error = "别名不能为空。";
+            Error = "名称不能为空。";
             return Page();
         }
 
@@ -50,7 +50,12 @@ public sealed class IndexModel : BasePageModel
             parsedExpire = parsed;
         }
 
-        NewCredential = await credentialService.CreateAsync(Sub, alias.Trim(), parsedExpire, cancellationToken);
+        NewCredential = await credentialService.CreateAsync(Owner, alias.Trim(), parsedExpire, cancellationToken);
+
+        if (NewCredential is null)
+        {
+            Error = "创建失败：下游未返回有效响应。";
+        }
 
         await LoadAsync(cancellationToken);
         return Page();
@@ -58,9 +63,7 @@ public sealed class IndexModel : BasePageModel
 
     public async Task<IActionResult> OnPostRevokeAsync(string id, CancellationToken cancellationToken)
     {
-        if (Sub is null) return RequireLogin();
-
-        var revoked = await credentialService.RevokeOwnAsync(id, Sub, cancellationToken);
+        var revoked = await credentialService.RevokeOwnAsync(id, Owner, cancellationToken);
         if (!revoked)
         {
             Error = "吊销失败：没有权限，或下游已拒绝该操作。";
@@ -70,17 +73,10 @@ public sealed class IndexModel : BasePageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostSyncAsync(CancellationToken cancellationToken)
-    {
-        if (Sub is null) return RequireLogin();
-        await LoadAsync(cancellationToken);
-        return Page();
-    }
-
     private async Task LoadAsync(CancellationToken cancellationToken)
     {
         var result = new List<(string CredentialId, string Alias, string Owner, DateTimeOffset? Expire)>();
-        await foreach (var credential in credentialService.ListOwnAsync(Sub!, cancellationToken))
+        await foreach (var credential in credentialService.ListOwnAsync(Owner, cancellationToken))
         {
             result.Add(credential);
         }

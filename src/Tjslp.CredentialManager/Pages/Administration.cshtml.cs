@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace Tjslp.CredentialManager.Pages;
 
 [Authorize(Policy = "Administrator")]
-public sealed class AdministrationModel : BasePageModel
+public sealed class AdministrationModel : PageModel
 {
     private readonly CredentialService credentialService;
 
@@ -33,12 +33,6 @@ public sealed class AdministrationModel : BasePageModel
             Error = "吊销失败：下游已拒绝该操作，或该凭证已不存在。";
         }
 
-        await LoadAsync(cancellationToken);
-        return Page();
-    }
-
-    public async Task<IActionResult> OnPostSyncAsync(CancellationToken cancellationToken)
-    {
         await LoadAsync(cancellationToken);
         return Page();
     }

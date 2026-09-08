@@ -10,13 +10,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"]</title>
-    <link rel="stylesheet" href="/css/site.css" />
+    @await Html.PartialAsync("_Styles")
 </head>
 <body>
     <main>
         <h1>我的凭证</h1>
         <p>
-            当前用户：<strong>@Model.Sub</strong>
+            当前用户：<strong>@Model.Owner</strong>
             <span>· <a href="/administration">管理所有凭证</a></span>
             <form method="post" action="/Account/Logout" style="display:inline">
                 <button type="submit">退出登录</button>
@@ -36,17 +36,17 @@
                     <code class="credential">@created.Credential</code>
                     <button type="button" onclick="navigator.clipboard.writeText('@created.Credential')">复制</button>
                 </p>
-                <p>ID: @created.CredentialId · 过期: @(created.Expire?.ToString("u") ?? "永不过期")</p>
+                <p>ID: @created.CredentialId · 过期: @(created.Expire?.ToString("u") ?? "永久")</p>
             </div>
         }
 
         <h2>创建新凭证</h2>
         <form method="post" asp-page-handler="Create">
             @Html.AntiForgeryToken()
-            <label for="alias">别名:</label>
+            <label for="alias">名称:</label>
             <input id="alias" name="alias" placeholder="例如：用于 CI" required />
             <label for="expire">过期时间（可选，ISO 格式，如 2026-10-01T00:00:00Z）:</label>
-            <input id="expire" name="expire" placeholder="留空 = 由下游决定" />
+            <input id="expire" name="expire" placeholder="留空 = 永久" />
             <button type="submit">创建</button>
         </form>
 
@@ -60,7 +60,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>别名</th>
+                        <th>名称</th>
                         <th>ID</th>
                         <th>过期时间</th>
                         <th></th>
@@ -85,13 +85,6 @@
                 </tbody>
             </table>
         }
-
-        <h2>同步下游</h2>
-        <p>点击同步，用下游 <code>/query</code> 刷新本地记录的过期状态。</p>
-        <form method="post" asp-page-handler="Sync">
-            @Html.AntiForgeryToken()
-            <button type="submit">同步</button>
-        </form>
     </main>
 </body>
 </html>

@@ -39,7 +39,7 @@ public sealed class E2EFixture : IAsyncLifetime
 
         var app = new ServeCommand
         {
-            Port = 0,
+            Listen = "http://127.0.0.1:0",
             Data = databasePath,
             Downstream = downstreamUrl,
             Administrator = "administrator",

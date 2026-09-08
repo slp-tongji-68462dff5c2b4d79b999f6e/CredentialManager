@@ -10,12 +10,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"]</title>
-    <link rel="stylesheet" href="/css/site.css" />
+    @await Html.PartialAsync("_Styles")
 </head>
 <body>
     <main>
         <h1>所有凭证</h1>
-        <p>当前用户：<strong>@Model.Sub</strong>（管理员） · <a href="/">管理我的凭证</a></p>
+        <p><a href="/">管理我的凭证</a></p>
 
         @if (Model.Error is not null)
         {
@@ -32,7 +32,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>别名</th>
+                        <th>名称</th>
                         <th>ID</th>
                         <th>归属人</th>
                         <th>过期时间</th>
@@ -59,12 +59,6 @@
                 </tbody>
             </table>
         }
-
-        <h2>同步下游</h2>
-        <form method="post" asp-page-handler="Sync">
-            @Html.AntiForgeryToken()
-            <button type="submit">同步</button>
-        </form>
     </main>
 </body>
 </html>

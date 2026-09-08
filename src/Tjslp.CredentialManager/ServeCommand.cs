@@ -7,14 +7,15 @@ using Tjslp.CredentialManager.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace Tjslp.CredentialManager;
 
 [Command]
 public sealed partial class ServeCommand : ICommand
 {
-    [CommandOption("port")]
-    public required int Port { get; set; }
+    [CommandOption("listen")]
+    public required string Listen { get; set; }
 
     [CommandOption("data")]
     public required string Data { get; set; }
@@ -45,13 +46,11 @@ public sealed partial class ServeCommand : ICommand
 
     public WebApplication BuildApp()
     {
-        var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             ApplicationName = typeof(ServeCommand).Assembly.GetName().Name,
-            Args = ["--urls", $"http://127.0.0.1:{Port}"],
+            Args = ["--urls", Listen],
         });
-
-        builder.WebHost.UseKestrel();
 
         Directory.CreateDirectory(Data);
 
@@ -112,9 +111,15 @@ public sealed partial class ServeCommand : ICommand
         });
         builder.Services.AddRazorPages();
 
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        });
+
         var app = builder.Build();
 
-        app.UseStaticFiles();
+        app.UseForwardedHeaders();
+
         app.UseAuthentication();
         app.UseAuthorization();
 

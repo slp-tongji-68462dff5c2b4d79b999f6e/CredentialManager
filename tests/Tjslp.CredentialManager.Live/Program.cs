@@ -34,6 +34,7 @@ var app = new ServeCommand
     Data = dataDirectory,
     Downstream = downstreamUrl,
     Administrator = "administrator",
+    Title = "测试平台",
     Oidc = oidcUrl,
     OidcId = "test-client",
     OidcSecret = "test-secret",

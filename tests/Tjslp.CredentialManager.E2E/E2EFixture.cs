@@ -43,6 +43,7 @@ public sealed class E2EFixture : IAsyncLifetime
             Data = databasePath,
             Downstream = downstreamUrl,
             Administrator = "administrator",
+            Title = "测试平台",
             Oidc = oidcUrl,
             OidcId = "test-client",
             OidcSecret = "test-secret",

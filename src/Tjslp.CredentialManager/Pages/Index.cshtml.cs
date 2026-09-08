@@ -9,17 +9,21 @@ namespace Tjslp.CredentialManager.Pages;
 [Authorize]
 public sealed class IndexModel : PageModel
 {
+    private readonly AppOptions appOptions;
     private readonly CredentialService credentialService;
 
     public string Owner => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+    public string Title => appOptions.Title;
 
     public IReadOnlyList<(string CredentialId, string Alias, string Owner, DateTimeOffset? Expire)> Credentials { get; private set; }
         = [];
     public (string CredentialId, string Credential, DateTimeOffset? Expire)? NewCredential { get; private set; }
     public string? Error { get; private set; }
 
-    public IndexModel(CredentialService credentialService)
+    public IndexModel(AppOptions appOptions, CredentialService credentialService)
     {
+        this.appOptions = appOptions;
         this.credentialService = credentialService;
     }
 

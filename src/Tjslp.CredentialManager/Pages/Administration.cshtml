@@ -2,7 +2,7 @@
 @using Tjslp.CredentialManager.Services
 @model Tjslp.CredentialManager.Pages.AdministrationModel
 @{
-    ViewData["Title"] = "凭证管理（管理员）";
+    ViewData["Title"] = $"所有凭证（{Model.Title}）";
 }
 <!doctype html>
 <html lang="zh">
@@ -14,7 +14,7 @@
 </head>
 <body>
     <main>
-        <h1>所有凭证</h1>
+        <h1>所有凭证（@Model.Title）</h1>
         <p><a href="/">管理我的凭证</a></p>
 
         @if (Model.Error is not null)

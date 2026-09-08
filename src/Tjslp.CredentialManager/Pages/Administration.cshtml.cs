@@ -8,14 +8,18 @@ namespace Tjslp.CredentialManager.Pages;
 [Authorize(Policy = "Administrator")]
 public sealed class AdministrationModel : PageModel
 {
+    private readonly AppOptions appOptions;
     private readonly CredentialService credentialService;
+
+    public string Title => appOptions.Title;
 
     public IReadOnlyList<(string CredentialId, string Alias, string Owner, DateTimeOffset? Expire)> Credentials { get; private set; }
         = [];
     public string? Error { get; private set; }
 
-    public AdministrationModel(CredentialService credentialService)
+    public AdministrationModel(AppOptions appOptions, CredentialService credentialService)
     {
+        this.appOptions = appOptions;
         this.credentialService = credentialService;
     }
 

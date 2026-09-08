@@ -17,6 +17,9 @@ public sealed partial class ServeCommand : ICommand
     [CommandOption("listen")]
     public required string Listen { get; set; }
 
+    [CommandOption("title")]
+    public required string Title { get; set; }
+
     [CommandOption("data")]
     public required string Data { get; set; }
 
@@ -58,6 +61,7 @@ public sealed partial class ServeCommand : ICommand
             new DownstreamClient(new Uri(Downstream.TrimEnd('/') + "/")),
             new CredentialRepository(new LiteDatabase(Path.Combine(Data, "credentials.db"))));
 
+        builder.Services.AddSingleton(new AppOptions(Title));
         builder.Services.AddSingleton(credentialService);
 
         builder.Services

@@ -1,0 +1,97 @@
+@page "/"
+@using Tjslp.CredentialManager.Services
+@model Tjslp.CredentialManager.Pages.IndexModel
+@{
+    ViewData["Title"] = "我的凭证";
+}
+<!doctype html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <main>
+        <h1>我的凭证</h1>
+        <p>
+            当前用户：<strong>@Model.Sub</strong>
+            <span>· <a href="/administration">管理所有凭证</a></span>
+            <form method="post" action="/Account/Logout" style="display:inline">
+                <button type="submit">退出登录</button>
+            </form>
+        </p>
+
+        @if (Model.Error is not null)
+        {
+            <div class="error">@Model.Error</div>
+        }
+
+        @if (Model.NewCredential is { } created)
+        {
+            <div class="notice">
+                <p><strong>新凭证已创建，请立即复制保存，之后无法再次查看：</strong></p>
+                <p>
+                    <code class="credential">@created.Credential</code>
+                    <button type="button" onclick="navigator.clipboard.writeText('@created.Credential')">复制</button>
+                </p>
+                <p>ID: @created.CredentialId · 过期: @(created.Expire?.ToString("u") ?? "永不过期")</p>
+            </div>
+        }
+
+        <h2>创建新凭证</h2>
+        <form method="post" asp-page-handler="Create">
+            @Html.AntiForgeryToken()
+            <label for="alias">别名:</label>
+            <input id="alias" name="alias" placeholder="例如：用于 CI" required />
+            <label for="expire">过期时间（可选，ISO 格式，如 2026-10-01T00:00:00Z）:</label>
+            <input id="expire" name="expire" placeholder="留空 = 由下游决定" />
+            <button type="submit">创建</button>
+        </form>
+
+        <h2>现有凭证（@Model.Credentials.Count）</h2>
+        @if (Model.Credentials.Count == 0)
+        {
+            <p>暂无凭证。</p>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>别名</th>
+                        <th>ID</th>
+                        <th>过期时间</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var credential in Model.Credentials)
+                    {
+                        <tr>
+                            <td>@credential.Alias</td>
+                            <td><code>@credential.CredentialId</code></td>
+                            <td>@(credential.Expire?.ToString("u") ?? "永久")</td>
+                            <td>
+                                <form method="post" asp-page-handler="Revoke" onsubmit="return confirm('确认吊销该凭证？');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@credential.CredentialId" />
+                                    <button type="submit" class="danger">吊销</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h2>同步下游</h2>
+        <p>点击同步，用下游 <code>/query</code> 刷新本地记录的过期状态。</p>
+        <form method="post" asp-page-handler="Sync">
+            @Html.AntiForgeryToken()
+            <button type="submit">同步</button>
+        </form>
+    </main>
+</body>
+</html>

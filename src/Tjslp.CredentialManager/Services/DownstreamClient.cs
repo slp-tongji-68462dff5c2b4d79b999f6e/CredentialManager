@@ -4,8 +4,12 @@ using Tjslp.CredentialManager.Protocol;
 
 namespace Tjslp.CredentialManager.Services;
 
-public sealed class DownstreamClient(HttpClient http, Uri baseUri)
+public sealed class DownstreamClient(Uri baseUri) : IDisposable
 {
+    private readonly HttpClient http = new();
+
+    public void Dispose() => http.Dispose();
+
     public async Task<(string CredentialId, string Credential, DateTimeOffset? Expire)?> CreateAsync(
         DateTimeOffset? expire,
         CancellationToken cancellationToken = default)

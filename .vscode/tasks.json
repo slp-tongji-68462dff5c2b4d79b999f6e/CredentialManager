@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/CredentialManager/CredentialManager.csproj"
+                "${workspaceFolder}/src/Tjslp.CredentialManager/Tjslp.CredentialManager.csproj"
             ],
             "problemMatcher": "$msCompile",
             "group": {
